@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Tareas y Prioridades Local (GTPL)</title>
+    <style>
+        /* Estilos CSS Base */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2 { color: #009688; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 20px; }
+        .card { background-color: #f9f9f9; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e0e0e0; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input[type="text"], .form-group input[type="date"], .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .btn { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; margin-right: 5px; }
+        .btn-submit { background-color: #009688; color: white; }
+        .btn-submit:hover { background-color: #00796b; }
+        .btn-secondary { background-color: #ff9800; color: white; }
+        .btn-secondary:hover { background-color: #fb8c00; }
+        .btn-danger { background-color: #f44336; color: white; }
+        .btn-danger:hover { background-color: #d32f2f; }
+        .btn-success { background-color: #4CAF50; color: white; }
+        .btn-success:hover { background-color: #388E3C; }
+
+        /* Estilos de la lista de tareas */
+        #task-list-container { margin-top: 20px; }
+        .task-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; margin-bottom: 10px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: all 0.3s; }
+        .task-item-content { flex-grow: 1; }
+        
+        /* Estados de Tarea */
+        .task-item.completed { background-color: #e8f5e9; border-left: 5px solid #4CAF50; opacity: 0.7; text-decoration: line-through; }
+        .task-item:not(.completed) { background-color: #fff; border-left: 5px solid #2196F3; }
+        .task-item[data-priority="ALTA"] { border-left-color: #f44336; }
+        .task-item[data-priority="MEDIA"] { border-left-color: #ff9800; }
+        
+        .task-title { font-weight: bold; font-size: 1.1em; }
+        .task-due { font-size: 0.9em; color: #777; margin-top: 5px; }
+        .task-actions button { margin-left: 5px; }
+
+        /* Estilos de etiquetas */
+        .tag-badge { display: inline-block; padding: 3px 8px; margin-right: 5px; border-radius: 12px; font-size: 0.8em; font-weight: 500; color: white; }
+        .tag-URGENTE { background-color: #f44336; }
+        .tag-CLIENTE { background-color: #2196F3; }
+        .tag-INFORME { background-color: #9c27b0; }
+        .tag-DESARROLLO { background-color: #00bcd4; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>✅ Gestor de Tareas y Prioridades Local (GTPL)</h1>
+
+        <div class="card">
+            <h2>➕ Añadir Nueva Tarea</h2>
+            <form id="new-task-form">
+                <div class="form-group">
+                    <label for="title">Título:</label>
+                    <input type="text" id="title" name="title" required value="Ej: Preparar documentación final">
+                </div>
+                <div class="form-group">
+                    <label for="description">Descripción:</label>
+                    <input type="text" id="description" name="description" value="Revisar el PDF y adjuntar capturas.">
+                </div>
+                <div style="display: flex; gap: 20px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="dueDate">Fecha Límite:</label>
+                        <input type="date" id="dueDate" name="dueDate" required value="2025-11-15">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="priority">Prioridad:</label>
+                        <select id="priority" name="priority" required>
+                            <option value="ALTA">ALTA</option>
+                            <option value="MEDIA" selected>MEDIA</option>
+                            <option value="BAJA">BAJA</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="tags">Etiquetas (separadas por coma, ej: URGENTE, CLIENTE):</label>
+                    <input type="text" id="tags" name="tags" value="INFORME, URGENTE">
+                </div>
+                
+                <button type="submit" class="btn btn-submit">Guardar Tarea</button>
+            </form>
+        </div>
+
+        <hr>
+
+        <h2>📋 Lista de Tareas</h2>
+        
+        <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <label style="font-weight: bold;">Mostrar:</label>
+                <button class="btn btn-submit" id="filter-all">TODAS</button>
+                <button class="btn" id="filter-pending">PENDIENTES</button>
+                <button class="btn" id="filter-completed">COMPLETADAS</button>
+            </div>
+            
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="search-input" placeholder="Buscar por título o tag..." style="width: 250px;">
+                <button class="btn btn-secondary" id="optimize-btn">Optimizar Flujo de Trabajo ⚡</button>
+            </div>
+        </div>
+
+        <div id="task-list-container">
+            <div class="task-item" data-id="1701104400001" data-priority="ALTA">
+                <div class="task-item-content">
+                    <div class="task-title">Reunión con Cliente B</div>
+                    <p class="task-due">Límite: 2025-11-08 (Prioridad: ALTA)</p>
+                    <div>
+                        <span class="tag-badge tag-URGENTE">URGENTE</span>
+                        <span class="tag-badge tag-CLIENTE">CLIENTE</span>
+                    </div>
+                </div>
+                <div class="task-actions">
+                    <button class="btn btn-success btn-sm">Completar</button>
+                    <button class="btn btn-danger btn-sm">Eliminar</button>
+                </div>
+            </div>
+
+            <div class="task-item" data-id="1701104400002" data-priority="MEDIA">
+                <div class="task-item-content">
+                    <div class="task-title">Diseño de Interfaz Móvil</div>
+                    <p class="task-due">Límite: 2025-11-15 (Prioridad: MEDIA)</p>
+                    <div>
+                        </div>
+                </div>
+                <div class="task-actions">
+                    <button class="btn btn-success btn-sm">Completar</button>
+                    <button class="btn btn-danger btn-sm">Eliminar</button>
+                </div>
+            </div>
+
+            <div class="task-item completed" data-id="1701104400003" data-priority="BAJA">
+                <div class="task-item-content">
+                    <div class="task-title">Investigar librería de Gráficos</div>
+                    <p class="task-due">Límite: 2025-12-01 (Prioridad: BAJA)</p>
+                    <div>
+                        <span class="tag-badge tag-DESARROLLO">DESARROLLO</span>
+                    </div>
+                </div>
+                <div class="task-actions">
+                    <button class="btn btn-secondary btn-sm">Deshacer</button>
+                    <button class="btn btn-danger btn-sm">Eliminar</button>
+                </div>
+            </div>
+
+            <div class="task-item" data-id="1701104400004" data-priority="ALTA">
+                <div class="task-item-content">
+                    <div class="task-title">Arreglar Bug Crítico en Producción</div>
+                    <p class="task-due">Límite: 2025-11-08 (Prioridad: ALTA)</p>
+                    <div>
+                        <span class="tag-badge tag-URGENTE">URGENTE</span>
+                    </div>
+                </div>
+                <div class="task-actions">
+                    <button class="btn btn-success btn-sm">Completar</button>
+                    <button class="btn btn-danger btn-sm">Eliminar</button>
+                </div>
+            </div>
+            
+            </div>
+    </div>
+
+    <script src="app.js"></script> 
+</body>
+</html>
