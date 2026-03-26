@@ -1,5 +1,5 @@
 //Array de tasks inicial
-const tasks=JSON.parse(localStorage.getItem("tasks")) || [
+const defaultTasks=[
     {
         id:0,
         title:"Reunión con Cliente A",
@@ -16,7 +16,7 @@ const tasks=JSON.parse(localStorage.getItem("tasks")) || [
         tags:["URGENTE","CLIENTE"],
         dueDate:"2025-11-08",
         priority:"MEDIA",
-        isCompleted:false
+        isCompleted:true
     },
     {
         id:2,
@@ -29,16 +29,20 @@ const tasks=JSON.parse(localStorage.getItem("tasks")) || [
     }
 ]
 
+const tasks = JSON.parse(localStorage.getItem("tasks")) || defaultTasks; 
+
+
+const addButton = document.getElementsByClassName("btn-submit")[0];
+
 function saveTasks() {
     localStorage.setItem("tasks", JSON.stringify(tasks));
 }
 
+addButton.addEventListener("click", addTasks);
+
 //Funcion para añadir tasks
-function addTasks(){
-    let buttonAdd=document.getElementsByClassName("btn-submit");
-
-    buttonAdd.addEventListener("click",Event=>{
-
+function addTasks(event){
+        event.preventDefault();
         let titleAdd= document.getElementById("title").value;
         let descriptionAdd= document.getElementById("description").value;
         let tagsAdd=document.getElementById("tags").value;
@@ -48,7 +52,7 @@ function addTasks(){
         tasks.push({id:tasks.length+1,
                     title: titleAdd,
                     description: descriptionAdd,
-                    tags: tagsAdd,
+                    tags: tagsAdd.split(","),
                     dueDate: dueDateAdd,
                     priority:priorityAdd,
                     isCompleted:false
@@ -56,45 +60,71 @@ function addTasks(){
 
         saveTasks();
         mostrarTasks(tasks);
-    })
 }
 
 
 //Funcion para mostrar tasks
 function mostrarTasks(tasks){
-    let list= document.getElementById("div");
+    let list= document.getElementById("task-list-container");
     list.innerHTML = "";
 
-    for(let i=0;i<tasks.length;i++){
-        let taskContainer= document.createElement("div");
+    tasks.forEach(task => {
+        let taskItem=document.createElement("div");
+        taskItem.classList.add("task-item")
+        if(task.isCompleted){
+            taskItem.classList.add("completed");
+        }
+        let taskItemContent=document.createElement("div");
+        taskItem.classList.add("task-item-content");
 
-        let taskTitle=document.createElement("h3");
-        taskTitle.textContent = tasks[i].title;
+        let taskTitle=document.createElement("div");
+        taskTitle.classList.add("task-title");
+        taskTitle.textContent = task.title;
 
         let taskDue=document.createElement("p");
-        taskDue.textContent = tasks[i].dueDate;
+        taskTitle.classList.add("task-due");
+        taskDue.textContent = task.dueDate;
 
-        let taskTags=document.createElement("p");
-        taskTags.textContent = tasks[i].tags.join(",");
+        let taskTags=document.createElement("div");
+        task.tags.forEach(tag=>{
+            let tagSpan=document.createElement("span");
+            tagSpan.classList.add("tag-badge", `tag-${tag}`);
+            tagSpan.textContent=tag;
+
+            taskTags.appendChild(tagSpan);
+        })
+
+        let taskAction=document.createElement("div");
+        taskAction.classList.add("task-actions");
+
+
+        let buttonComplete= document.createElement("button");
+        if(task.isCompleted){
+            buttonComplete.classList.add("btn", "btn-secondary", "btn-sm");
+            buttonComplete.textContent="Deshacer";
+        }
+        else{
+            buttonComplete.classList.add("btn", "btn-success", "btn-sm");
+            buttonComplete.textContent="Completar";
+        }
+        buttonComplete.onclick = () => completeTask(tasks[i].id);
 
         let buttonDelete= document.createElement("button");
         buttonDelete.textContent = "Eliminar";
         buttonDelete.onclick = () => deleteTask(tasks[i].id);
 
-        let buttonComplete= document.createElement("button");
-        buttonComplete.textContent = "Completar";
-        buttonComplete.onclick = () => completeTask(tasks[i].id);
+        taskAction.appendChild(buttonComplete);
+        taskAction.appendChild(buttonDelete);
 
-        taskContainer.appendChild(taskTitle);
-        taskContainer.appendChild(taskDue);
-        taskContainer.appendChild(taskTags);
-        taskContainer.appendChild(buttonDelete);
-        taskContainer.appendChild(buttonComplete);
+        taskItemContent.appendChild(taskTitle);
+        taskItemContent.appendChild(taskDue);
+        taskItemContent.appendChild(taskTags);
 
-        list.appendChild(taskContainer);
-    }
+        taskItem.appendChild(taskItemContent);
+        taskItem.appendChild(taskAction);
 
-    
+        list.appendChild(taskItem);
+    });
 }
 
 //Funcion para eliminar tasks
